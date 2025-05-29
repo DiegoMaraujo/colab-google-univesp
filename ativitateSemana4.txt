@@ -1,0 +1,231 @@
+1. Nesta atividade, usaremos as bibliotecas scikit-learn, pandas, numpy e matplotlib. 
+
+Importe as bibliotecas.
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import StandardScaler
+from google.colab import files
+plt.rcParams['figure.figsize']=[15,10]
+ 
+2. Importe a base de dados direto da URL e verifique as primeiras linhas. O arquivo contém 18185 registros.
+url = 'https://raw.githubusercontent.com/higoramario/univesp-com410-aprendizado-de-maquinas/main/rice-classification.csv'
+arroz = pd.read_csv(url, sep=',')
+arroz.head()
+
+3. Vamos ver a distribuição do atributo classe.
+
+
+arroz['Class'].plot.hist()
+plt.show()
+
+4. Selecionando todos os atributos.
+
+atributos_todos = arroz[['Area','MajorAxisLength','MinorAxisLength','Eccentricity','ConvexArea','EquivDiameter','Extent','Perimeter','Roundness','AspectRation']]
+
+classes = arroz['Class']
+
+ 
+
+5. Agora, dividimos os dados entre treinamento (90%) e teste (10%).
+
+arroz_treino_todos, arroz_teste_todos, classes_treino_todos, classes_teste_todos = train_test_split(atributos_todos, classes, test_size = 0.1)
+
+ 
+
+6. Escalando os dados para acelerar a execução do treinamento do modelo e da geração do gráfico de visualização dos resultados.
+
+scaler = StandardScaler()
+
+arroz_treino_todos = scaler.fit_transform(arroz_treino_todos)
+
+arroz_teste_todos = scaler.transform(arroz_teste_todos)
+
+ 
+
+7. Treinando o modelo para gerar o classificador usando a função kernel polinomial.
+
+Os seguintes parâmetros de funções de kernel podem ser usados para aprimorar o modelo:
+
+C: determina se a margem será mais ajustada (C grande) ou mais larga (C pequeno)
+
+gamma: parâmetro de ajuste para as funções polinomial e sigmoidal
+
+coef0: parâmetro kappa, constante usada nas funções polinomial e sigmoidal
+
+degree: grau da função polinomial
+
+ 
+
+SVM_polinomial_todos = SVC(kernel = 'poly', degree = 3, gamma = 'scale', C = 1.0, coef0 = 2)
+
+SVM_polinomial_todos.fit(arroz_treino_todos, classes_treino_todos)
+
+ 
+
+8. Verificando a acurácia de classificação, cujo valor pode variar dependendo do conjunto usado no treinamento.
+
+predicao_todos = SVM_polinomial_todos.predict(arroz_teste_todos)
+
+acuracia_todos = accuracy_score(classes_teste_todos,predicao_todos)
+
+print('Acurácia de classificação com os todos atributos: {}'.format(round(acuracia_todos,3)*100)+'%')
+
+ 
+
+Acurácia de classificação com todos os atributos: 99.3%
+
+ 
+
+9. Criando um novo conjunto com apenas dois atributos para plotar os resultados.
+
+atributos = arroz[['Area','MajorAxisLength']]
+
+classes = arroz['Class']
+
+ 
+
+10. Separando o conjunto em treinamento e teste.
+
+arroz_treino, arroz_teste, classes_treino, classes_teste = train_test_split(atributos, classes, test_size = 0.1)
+
+ 
+
+11. Escalando os dados para acelerar a execução do treinamento do modelo e da geração do gráfico de visualização dos resultados.
+
+scaler = StandardScaler()
+
+arroz_treino = scaler.fit_transform(arroz_treino)
+
+arroz_teste = scaler.transform(arroz_teste)
+
+ 
+
+12. Gerando o classificador linear.
+
+SVM_linear = SVC(kernel = 'linear', C = 0.2)
+
+SVM_linear.fit(arroz_treino, classes_treino)
+
+ 
+
+13. Verificando a acurácia de classificação.
+
+predicao_linear = SVM_linear.predict(arroz_teste)
+
+acuracia_linear = accuracy_score(classes_teste,predicao_linear)
+
+print('Acurácia de classificação da SVM linear com dois atributos: {}'.format(round(acuracia_linear,3)*100)+'%')
+
+ 
+
+Acurácia de classificação da SVM linear com dois atributos: 99.1%
+
+ 
+
+14. Vamos plotar o resultado olhando como o modelo classifica o conjunto de testes. Para isso, vamos criar uma função que usa as funções meshgrid do numpy, que cria um grid retangular, e contourf do matplotlib, que permite criar linhas e preencher áreas com cores.
+
+#função que recebe os atributos e classes do conjunto de testes, o classificador SVM e plota os resultados
+
+def visualizarSVM(atributos_t,classes_t,classificador):
+
+atributos, classes = atributos_t, classes_t
+
+ 
+
+ano, salario = np.meshgrid(np.arange(start = atributos[:, 0].min() - 1, stop = atributos[:, 0].max() + 1, step = 0.01),
+
+np.arange(start = atributos[:, 1].min() - 1, stop = atributos[:, 1].max() + 1, step = 0.01))
+
+ 
+
+plt.contourf(ano, salario, classificador.predict(np.array([ano.ravel(), salario.ravel()]).T).reshape(ano.shape),
+
+alpha = 0.75, cmap = ListedColormap(('red', 'green')))
+
+ 
+
+plt.xlim(ano.min(), ano.max())
+
+plt.ylim(salario.min(), salario.max())
+
+ 
+
+for i, j in enumerate(np.unique(classes)):
+
+plt.scatter(atributos[classes == j, 0], atributos[classes == j, 1],
+
+color = ListedColormap(('red', 'green'))(i), label = j)
+
+ 
+
+plt.title('Classificação SVM')
+
+plt.xlabel('Ano')
+
+plt.ylabel('Salário estimado')
+
+plt.legend()
+
+plt.show()
+
+ 
+
+15. Vamos plotar o classificador linear.
+
+visualizarSVM(arroz_teste, classes_teste, SVM_linear)
+
+16. Agora vamos treinar o modelo para gerar o classificador usando a função kernel polinomial.
+
+SVM_polinomial = SVC(kernel = 'poly', degree = 3, gamma = 'scale', C = 1.0, coef0 = 2)
+
+SVM_polinomial.fit(arroz_treino, classes_treino)
+
+ 
+
+17. Verificando a acurácia de classificação da SVM polinomial.
+
+predicao_poli = SVM_polinomial.predict(arroz_teste)
+
+acuracia_poli = accuracy_score(classes_teste,predicao_poli)
+
+print('Acurácia de classificação da SVM polinomial com dois atributos: {}'.format(round(acuracia_poli,3)*100)+'%')
+
+ 
+
+Acurácia de classificação da SVM polinomial com dois atributos: 99.1%
+
+ 
+
+18. Vamos plotar o classificador que usa a função polinomial.
+
+visualizarSVM(arroz_teste, classes_teste, SVM_polinomial)
+
+19. Vamos plotar o classificador que usa a função polinomial.
+
+SVM_sigmoidal = SVC(kernel = 'sigmoid', gamma = 'scale', C = 2, coef0 = 2)
+
+SVM_sigmoidal.fit(arroz_treino, classes_treino)
+
+ 
+
+20. Verificando a acurácia de classificação da SVM sigmoidal.
+
+predicao_sigmoidal = SVM_sigmoidal.predict(arroz_teste)
+
+acuracia_sigmoidal = accuracy_score(classes_teste,predicao_sigmoidal)
+
+print('Acurácia de classificação da SVM polinomial com dois atributos: {}'.format(round(acuracia_poli,3)*100)+'%')
+
+ 
+
+Acurácia de classificação da SVM polinomial com dois atributos: 76.1%
+
+ 
+
+21. Vamos plotar o classificador que usa a função sigmoidal.
+
